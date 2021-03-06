@@ -11,14 +11,13 @@ To run the program, you can either:
 
 1. run com.celanim.cartoonify.Cartoonify.main from within IntelliJ.
 
-2. run as: java -cp bin com.celanim.cartoonify.Cartoonify
+2. run as: java -cp out/production/cartoonify com.celanim.cartoonify.Cartoonify
 
-3. run ant task script: ant main
+3. run ant task script from 'cartoonify' directory: ant main
 
 Run the program with no arguments to see the usage message.
 
-The clean.sh script can be used to delete all output images when
-they are no longer needed.
+The clean.sh script can be used to delete all output images when they are no longer needed.
 
 
 IMPORTANT: the unit tests should be run after any code changes.

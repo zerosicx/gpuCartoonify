@@ -1,11 +1,12 @@
-<project name="pi_darts" default="main" basedir=".">
+<project name="cartoonify" default="main" basedir=".">
     <description>
-        the build file for pi darts
+        the build file for cartoonify project
     </description>
     <!-- set global properties for this build -->
     <property name="src" location="src"/>
     <property name="lib" location="lib"/>
     <property name="build" location="build"/>
+    <property name="img_examples" location="img_examples"/>
     <property name="classes" value="${build}/classes"/>
     <property name="jar"     value="${build}/jar"/>
     <property name="main-class"  value="com.celanim.cartoonify.Cartoonify"/>
@@ -53,9 +54,15 @@
     </target>
 
     <target name="clean"
-            description="clean up">
+            description="clean up" >
         <!-- Delete the ${build} directory trees -->
-        <delete dir="${build}"/>
+        <delete dir="${build}" failonerror="true"/>
+        <delete failonerror="true">
+            <fileset dir="${img_examples}" includes="*_cartoon.jpg"/>
+            <fileset dir="${img_examples}" includes="*_blurred.jpg"/>
+            <fileset dir="${img_examples}" includes="*_colours.jpg"/>
+            <fileset dir="${img_examples}" includes="*_edges.jpg"/>
+        </delete>
     </target>
     <target name="main" depends="clean,run"/>
 </project>
