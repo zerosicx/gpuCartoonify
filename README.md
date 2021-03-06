@@ -9,7 +9,7 @@
 * You can obtain the URL of your forked project by clicking the "Clone" button (beside "Fork") and then the “copy to clipboard icon" at the right of the dropdown.
 * Clone the new repository to your computer and open the project with IntelliJ.
 * Using the Git command line interface
-        You will need to install a Git client yourself if you are not using the lab machines. In a termial on your computer, clone the assignment one repository to your computer using the command “git clone <the url you copied>”.
+        You will need to install a Git client yourself if you are not using the lab machines. In a termial on your computer, clone the assignment one repository to your computer using the command “git clone `<url you copied>`”.
         Open the project into your IntelliJ workspace. (File / Select the project directory ).
 * Commit your changes regularly, providing an informative commit message and using Git inside IntelliJ (Commit and Changes Tutorial: https://www.jetbrains.com/help/idea/commit-and-push-changes.html)
 * You are expected to make at least 20 commits with messages to explain what have changed. 10 out of 60 marks are allocated for this.
@@ -43,7 +43,7 @@ The following sequence of images shows the output of each of the stages in GelAn
   <tbody>
      <tr><th> Step </th><th>Result Image</th></tr>
 <tr><td >1. The original image, showing just one small 200x200 area of the image. </td><td><img src="https://elearn.waikato.ac.nz/pluginfile.php/1957516/mod_page/content/1/eg_bumblebee.jpg" width="450"/></td></tr>
-<tr><td >2. After applying the 5x5 Gaussian Blur filter. This takes each colour channel of each pixel and combines it with the values of the adjacent pixels, by multiplying them by the following matrix (so the pixel's own value is multiplied by 15, etc.
+<tr><td >2. After applying the 5x5 Gaussian Blur filter. This takes each colour channel of each pixel and combines it with the values of the adjacent pixels, by multiplying them by the following matrix (so the pixel's own value is multiplied by 15, etc).
                
                 [2,  4,  5,  4,  2]
                 [4,  9, 12,  9,  4]
