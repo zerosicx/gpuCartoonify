@@ -12,9 +12,7 @@
         You will need to install a Git client yourself if you are not using the lab machines. In a termial on your computer, clone the assignment one repository to your computer using the command “git clone <the url you copied>”.
         Open the pi_darts project into your Eclipse workspace. (File / Select the directory of 'pi_darts' ).
 * Commit your changes regularly, providing an informative commit message and using Git inside IntelliJ (Commit and Changes Tutorial: https://www.jetbrains.com/help/idea/commit-and-push-changes.html)
-* You are expected to make at least 20 commits with messages to explain what have changed.
-
- 10 out of 60 marks are allocated for this.
+* You are expected to make at least 20 commits with messages to explain what have changed. 10 out of 60 marks are allocated for this.
 
 
 ## Background
