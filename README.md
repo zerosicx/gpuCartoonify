@@ -1,17 +1,20 @@
 # Assignment Three Turning Photos into Cartoons (20%)
 
 
-**Due date Friday 17th April at 11:30 pm**
+**Due date %%%%% at 11:30 pm**
 
 ## Instruction
-
 * Fork the project by clicking the "Fork" button on the top-right corner.
 * **Make sure that the visibility of your new repository (the one you just forked) is set to private.**
-* Once the forking process completes, you can obtain the URL of your forked project by clicking the "Clone" button (beside "Fork") and then the “copy to clipboard icon" at the right of the dropdown.
-* Import the project into Eclipse. These can be done through the Git command line interface or using the Git plugin installed in Eclipse.
-* Using the Git command line interface: You will need to install a Git client yourself if you are not using the lab machines. In a termial on your computer, clone the assignment one repository to your computer using the command “git clone ”. Import the cartoonify project into your Eclipse workspace. (File / Import / General / Existing Projects into Workspace / Select archive file / Finish).
-* Using Git inside Eclipse: there are many tutorials on the Web. Here is one https://eclipsesource.com/blogs/tutorials/egit-tutorial
-* Commit your changes regularly, providing an informative commit message. You are expected to make at least 20 commits with messages to explain what have changed. 10 out of 60 marks are allocated for this.
+* You can obtain the URL of your forked project by clicking the "Clone" button (beside "Fork") and then the “copy to clipboard icon" at the right of the dropdown.
+* Clone the new repository to your computer and open the project with IntelliJ.
+* Using the Git command line interface
+        You will need to install a Git client yourself if you are not using the lab machines. In a termial on your computer, clone the assignment one repository to your computer using the command “git clone <the url you copied>”.
+        Open the pi_darts project into your Eclipse workspace. (File / Select the directory of 'pi_darts' ).
+* Commit your changes regularly, providing an informative commit message and using Git inside IntelliJ (Commit and Changes Tutorial: https://www.jetbrains.com/help/idea/commit-and-push-changes.html)
+* You are expected to make at least 20 commits with messages to explain what have changed.
+
+ 10 out of 60 marks are allocated for this.
 
 
 ## Background
