@@ -92,7 +92,7 @@ A new "-g" flag before the existing "-d" flag is added for GPU. Eg.
 If this "-g" flag is specified, then some or all of the photo processing steps will be done on the GPU, for faster performance. (Note: When the "-g" flag is specified, you can disable the debugging features if necessary, if they would slow down the speed of the program.) If the "-g" flag is omitted, then all the steps will continue to be done on the CPU using the existing code. So this original non-gpu program will be your benchmark, so that you compare the speed of your OpenCL programs against it to see how much speedup you have achieved.
 
 ### Short Report
-As well as delivering the updated source code to CelAnim (as a complete Eclipse project folder), you must also deliver a short report (i.e. a short .doc document) that tells the managers and technical personnel of CelAnim what you have achieved, and how you did it. It is suggested that your report should start with an executive summary that shows a graph that compares the original performance of the CelAnim program, and the improved performance of each program that you implemented.
+As well as delivering the updated source code to CelAnim (as a complete IntelliJ project folder), you must also deliver a short report (i.e. a short .doc document) that tells the managers and technical personnel of CelAnim what you have achieved, and how you did it. It is suggested that your report should start with an executive summary that shows a graph that compares the original performance of the CelAnim program, and the improved performance of each program that you implemented.
 
 The **body** of your report should briefly describe each of the new versions of the program that you implemented, and explain how much speedup (or slow-down) each one obtained, and why. This is so that they can learn from your experience, and see what approaches they should try in any other photo processing projects that they do in the future.
 
@@ -108,7 +108,7 @@ Impelement the *processPhotoOpenCL* method and several sub-functions in Cartooni
 
 ## Hints
 
-You can run the original Cartoonify program (from within the project directory) from within Eclipse, or on the command line like this:
+You can run the original Cartoonify program (from within the project directory) from within IntelliJ, or on the command line like this:
 
 ```
             java -cp out/production/cartoonify com.celanim.cartoonify.Cartoonify -e 256 -c 3 img_examples/img_bucket.jpg
