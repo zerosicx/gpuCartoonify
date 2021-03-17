@@ -431,7 +431,9 @@ public class Cartoonify {
      */
     int quantizeColour(int colourValue, int numPerChannel) {
         float colour = colourValue / (COLOUR_MASK + 1.0f) * numPerChannel;
-        int discrete = Math.round(colour - 0.49999f);
+        //IMPORTANT NOTE: due to the different implemention of the "round" funciton in OpenCL, 
+        //you need to use 0.49999f instead of 0.5f in your kernel code
+        int discrete = Math.round(colour - 0.5f);
         assert 0 <= discrete && discrete < numPerChannel;
         int newColour = discrete * COLOUR_MASK / (numPerChannel - 1);
         assert 0 <= newColour && newColour <= COLOUR_MASK;
