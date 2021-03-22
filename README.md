@@ -20,7 +20,7 @@ An animated movie production company called GelAnim wants to turn millions of ph
 
 |  Before Cartoonifying | After Cartoonifying |
 |-----------|---------|
-| <img src="https://elearn.waikato.ac.nz/pluginfile.php/1957524/mod_resource/content/1/eg_bumblebee2.jpg"/>|<img src="https://elearn.waikato.ac.nz/pluginfile.php/1957522/mod_resource/content/1/eg_bumblebee2_edited.jpg" />|
+| <img src="https://elearn.waikato.ac.nz/pluginfile.php/2201194/mod_resource/content/1/eg_bumblebee2.jpg"/>|<img src="https://elearn.waikato.ac.nz/pluginfile.php/2201193/mod_resource/content/1/eg_bumblebee2_edited.jpg" />|
 
  	
 GelAnim already have a Java program that does this, but it takes about FIVE seconds per 8 MPixel photo, which is far too slow. So they are asking you to see if you can port parts of the program to run on a GPU, so that it runs faster.
