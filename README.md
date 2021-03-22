@@ -51,7 +51,7 @@ The following sequence of images shows the output of each of the stages in GelAn
                 [4,  9, 12,  9,  4]
                 [2,  4,  5,  4,  2]
                 
-</td><td><img src="https://elearn.waikato.ac.nz/pluginfile.php/2290162/mod_page/content/1/eg_bumblebee_blurred.jpg"  /></td></tr>
+</td><td><img src="https://elearn.waikato.ac.nz/pluginfile.php/2290162/mod_resource/content/1/eg_bumblebee_blurred.jpg"  /></td></tr>
 <tr><td>
      3. After applying the horizontal and vertical Sobel edge filters to the blurred image:   
    
@@ -62,7 +62,7 @@ The following sequence of images shows the output of each of the stages in GelAn
                  
 </td><td><img src="https://elearn.waikato.ac.nz/pluginfile.php/2201191/mod_resource/content/1/eg_bumblebee_edges.jpg" /></td></tr>
 <tr><td >4. After applying the simple colour quantization algorithm to each pixel of the original image. This example uses just THREE values per channel, 
-so all the red channel values are rounded to the nearest of 0, 127 or 255, and similarly for the green and blue channels.</td><td><img src="https://elearn.waikato.ac.nz/pluginfile.php/2290163/mod_page/content/1/eg_bumblebee_colours.jpg" /></td></tr>
+so all the red channel values are rounded to the nearest of 0, 127 or 255, and similarly for the green and blue channels.</td><td><img src="https://elearn.waikato.ac.nz/pluginfile.php/2290163/mod_resource/content/1/eg_bumblebee_colours.jpg" /></td></tr>
 <tr><td >5. The final 'cartoon' image is formed by drawing the black edges on top of the colour-reduced image. </td><td> <img src="https://elearn.waikato.ac.nz/pluginfile.php/2201192/mod_resource/content/1/eg_bumblebee_edited.jpg" /></td></tr>
     </tbody>
 </table>
