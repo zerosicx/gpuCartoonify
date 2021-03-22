@@ -42,7 +42,7 @@ The following sequence of images shows the output of each of the stages in GelAn
 <table style="width:100%">
   <tbody>
      <tr><th> Step </th><th>Result Image</th></tr>
-<tr><td >1. The original image, showing just one small 200x200 area of the image. </td><td><img src="https://elearn.waikato.ac.nz/pluginfile.php/2290160/mod_page/content/1/eg_bumblebee.jpg" width="450"/></td></tr>
+<tr><td >1. The original image, showing just one small 200x200 area of the image. </td><td><img src="https://elearn.waikato.ac.nz/pluginfile.php/2290160/mod_resource/content/1/eg_bumblebee.jpg" width="450"/></td></tr>
 <tr><td >2. After applying the 5x5 Gaussian Blur filter. This takes each colour channel of each pixel and combines it with the values of the adjacent pixels, by multiplying them by the following matrix (so the pixel's own value is multiplied by 15, etc).
                
                 [2,  4,  5,  4,  2]
