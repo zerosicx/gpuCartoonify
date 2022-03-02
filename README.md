@@ -1,7 +1,7 @@
 # Assignment Three Turning Photos into Cartoons (20%)
 
 
-**Due date 2 April at 11:30 pm**
+**Due date 8 April at 11:30 pm**
 
 ## Instruction
 * Fork the project by clicking the "Fork" button on the top-right corner.
