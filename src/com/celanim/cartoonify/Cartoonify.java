@@ -684,6 +684,78 @@ public class Cartoonify {
             // We can read the kernel file to a string using below code
             final String srcCode = JOCLUtil.readResourceToString("/com/celanim/cartoonify/kernel.cl");
             System.out.println("Reading 'kernel.cl' file completed!");
+
+            // Use measurements from the last assignment for the peak work item sze and work group size
+            final int wiSize = 1024;
+            final int wgSize = 64;
+
+            // ********************************************************************************************************
+            // *********************************    SET UP OF OPENCL EXECUTION  ***************************************
+            // ********************************************************************************************************
+
+            // Enable openCL exceptions, so that we can avoid duplicated error checking in
+            // the remaining program.
+            CL.setExceptionsEnabled(true);
+            final int platformIndex = 0; // Platform index
+            final long deviceType = CL.CL_DEVICE_TYPE_GPU; // Show GPU device type
+            final int deviceIndex = 0; // Device number
+
+            // Obtain all platform ids on this machine.
+            cl_platform_id[] platforms = JOCLUtil.getAllPlatforms();
+            cl_platform_id platform = platforms[platformIndex];// Get the selected platform
+
+            // Get all devices on the selected 'platform'
+            cl_device_id[] devices = JOCLUtil.getAllDevices(platform, deviceType);
+            cl_device_id device = devices[deviceIndex]; // Get a single device id
+
+            // Initialize the context properties
+            cl_context_properties contextProperties = new cl_context_properties();
+            contextProperties.addProperty(CL_CONTEXT_PLATFORM, platform);
+
+            // Create a context for the selected device with contextProperties
+            cl_context context = clCreateContext(contextProperties, 1, new cl_device_id[] { device }, null, null, null);
+
+            @SuppressWarnings("deprecation")
+            cl_command_queue commandQueue = clCreateCommandQueue(context, device, 0, null); // OpenCL 1.2
+
+            // ********************************************************************************************************
+            // *********************************    IMPLEMENT OPENCL EXECUTION  ***************************************
+            // ********************************************************************************************************
+
+            // Create a read-write memory on OpenCL device (default value).
+            // Change to image size ?
+            cl_mem memOut = clCreateBuffer(context, CL_MEM_READ_WRITE, Sizeof.cl_int * wiSize, null, null);
+
+            // Load the source code 'srcCode' to the program object
+            cl_program program = clCreateProgramWithSource(context, 1, new String[] { srcCode }, null, null);
+
+            // Build the program
+            clBuildProgram(program, 0, null, null, null, null);
+
+            // Create the kernel for the different methods
+            cl_kernel gaussianKernel = clCreateKernel(program, "gaussianBlur", null);
+//            cl_kernel sobelEdgeDetectKernel = clCreateKernel(program, "sorbelEdgeDetect", null);
+//            cl_kernel reduceColoursKernel = clCreateKernel(program, "gaussianBlur", null);
+//            cl_kernel mergeMaskKernel = clCreateKernel(program, "mergeMask", null);
+
+            // Setting kernel arguments to store the output
+            clSetKernelArg(gaussianKernel, 2, Sizeof.cl_mem, Pointer.to(memOut));// Array 'output'
+
+            // Set the work-item dimensions
+            long global_work_size[] = new long[] { wiSize }; // Global work size is the number of work-items
+            long local_work_size[] = new long[] { wgSize };
+
+            // Execute the kernel
+            System.out.println("Starting with " + wiSize);
+            System.out.flush();
+
+            // Start to measure the time
+            final long time0 = System.nanoTime();
+
+            // Start to execute the kernel with global and local workgroup size
+            clEnqueueNDRangeKernel(commandQueue, gaussianKernel, 1, null, global_work_size, local_work_size, 0, null, null);
+            
+
         } catch (Exception ex) {
             System.err.print("Error occurred! " + ex.toString());
         }
