@@ -321,9 +321,9 @@ public class Cartoonify {
         int[] newPixels = new int[width * height];
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                int red = (int)Math.max(0, Math.min(255, convolution(x, y, GAUSSIAN_FILTER, RED) / GAUSSIAN_SUM)); // Ensure red value is between 0 and 255
-                int green = (int)Math.max(0, Math.min(255, convolution(x, y, GAUSSIAN_FILTER, GREEN) / GAUSSIAN_SUM)); // Ensure green value is between 0 and 255
-                int blue = (int)Math.max(0, Math.min(255, convolution(x, y, GAUSSIAN_FILTER, BLUE) / GAUSSIAN_SUM)); // Ensure blue value is between 0 and 255
+                int red = clamp(convolution(x, y, GAUSSIAN_FILTER, RED) / GAUSSIAN_SUM);
+                int green = clamp(convolution(x, y, GAUSSIAN_FILTER, GREEN) / GAUSSIAN_SUM);
+                int blue = clamp(convolution(x, y, GAUSSIAN_FILTER, BLUE) / GAUSSIAN_SUM);
                 newPixels[y * width + x] = createPixel(red, green, blue);
             }
         }
@@ -497,10 +497,7 @@ public class Cartoonify {
     int convolution(int xCentre, int yCentre, int[] filter, int colour) {
         int sum = 0;
         // find the width and height of the filter matrix, which must be square.
-        int filterSize = 1;
-        while (filterSize * filterSize < filter.length) {
-            filterSize++;
-        }
+        int filterSize = (int) Math.sqrt(filter.length);
         if (filterSize * filterSize != filter.length) {
             throw new IllegalArgumentException("non-square filter: " + Arrays.toString(filter));
         }
