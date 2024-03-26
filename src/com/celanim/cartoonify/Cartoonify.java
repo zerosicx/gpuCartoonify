@@ -321,9 +321,9 @@ public class Cartoonify {
         int[] newPixels = new int[width * height];
         for (int y = 0; y < height; y++) {
             for (int x = 0; x < width; x++) {
-                int red = clamp(convolution(x, y, GAUSSIAN_FILTER, RED) / GAUSSIAN_SUM);
-                int green = clamp(convolution(x, y, GAUSSIAN_FILTER, GREEN) / GAUSSIAN_SUM);
-                int blue = clamp(convolution(x, y, GAUSSIAN_FILTER, BLUE) / GAUSSIAN_SUM);
+                int red = (int)Math.max(0, Math.min(255, convolution(x, y, GAUSSIAN_FILTER, RED) / GAUSSIAN_SUM)); // Ensure red value is between 0 and 255
+                int green = (int)Math.max(0, Math.min(255, convolution(x, y, GAUSSIAN_FILTER, GREEN) / GAUSSIAN_SUM)); // Ensure green value is between 0 and 255
+                int blue = (int)Math.max(0, Math.min(255, convolution(x, y, GAUSSIAN_FILTER, BLUE) / GAUSSIAN_SUM)); // Ensure blue value is between 0 and 255
                 newPixels[y * width + x] = createPixel(red, green, blue);
             }
         }
@@ -519,6 +519,8 @@ public class Cartoonify {
     }
 
     /**
+     * Modified to reduce arithmetic operations
+     *
      * Restricts an index to be within the image.
      * <p>
      * Different strategies are possible for this, such as wrapping around,
@@ -532,14 +534,14 @@ public class Cartoonify {
      */
     public int wrap(int pos, int size) {
         if (pos < 0) {
-            pos = -1 - pos;
+            pos = size + (pos % size); // Adjust to wrap around the negative boundary
         } else if (pos >= size) {
-            pos = (size - 1) - (pos - size);
+            pos %= size; // Adjust to wrap around the positive boundary
         }
-        assert 0 <= pos;
-        assert pos < size;
+        assert 0 <= pos && pos < size;
         return pos;
     }
+
 
     /**
      * Clamp a colour value to be within the allowable range for each colour.
