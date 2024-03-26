@@ -369,11 +369,7 @@ public class Cartoonify {
                 int horizontalGradient = Math.abs(redHorizontal) + Math.abs(greenHorizontal) + Math.abs(blueHorizontal);
                 // we could take use sqrt(vertGrad^2 + horizGrad^2), but simple addition catches most edges.
                 int totalGradient = verticalGradient + horizontalGradient;
-                if (totalGradient >= edgeThreshold) {
-                    newPixels[y * width + x] = black; // we colour the edges black
-                } else {
-                    newPixels[y * width + x] = white;
-                }
+                newPixels[y * width + x] = totalGradient >= edgeThreshold ? black : white; // we colour the edges black
             }
         }
         pushImage(newPixels);
