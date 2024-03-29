@@ -681,75 +681,91 @@ public class Cartoonify {
             System.out.println("Reading 'kernel.cl' file completed!");
 
             // Use measurements from the last assignment for the peak work item sze and work group size
-            final int wiSize = 1024;
-            final int wgSize = 64;
+            final int wiSize = currentImage().length; // Processing one pixel at a time
+            final int wgSize = 64; // Processing 64 Work Items per work group
+            int[] imagePixels = currentImage();
+            int[] output = new int[wiSize];
+
+            int width = width();
+            int height = height();
+
+            Pointer pInput = Pointer.to(imagePixels);
+            Pointer pOutput = Pointer.to(output);
+            Pointer pWidth = Pointer.to(new int[]{width});
+            Pointer pHeight = Pointer.to(new int[]{height});
+
 
             // ********************************************************************************************************
             // *********************************    SET UP OF OPENCL EXECUTION  ***************************************
             // ********************************************************************************************************
 
-            // Enable openCL exceptions, so that we can avoid duplicated error checking in
-            // the remaining program.
+            // Enable extensions
             CL.setExceptionsEnabled(true);
-            final int platformIndex = 0; // Platform index
-            final long deviceType = CL.CL_DEVICE_TYPE_GPU; // Show GPU device type
-            final int deviceIndex = 0; // Device number
+            // Initialise variables for set up: paltform, device types and index
+            final int platformIndex = 0;
+            final int deviceIndex = 0;
 
-            // Obtain all platform ids on this machine.
+            // Obtain the platforms
             cl_platform_id[] platforms = JOCLUtil.getAllPlatforms();
-            cl_platform_id platform = platforms[platformIndex];// Get the selected platform
+            cl_platform_id platform = platforms[platformIndex];
+            System.out.println("Selected platform: " + JOCLUtil.getString(platform, CL_PLATFORM_NAME));
 
-            // Get all devices on the selected 'platform'
-            cl_device_id[] devices = JOCLUtil.getAllDevices(platform, deviceType);
-            cl_device_id device = devices[deviceIndex]; // Get a single device id
+            // Obtain the devices
+            cl_device_id[] devices = JOCLUtil.getAllDevices(platform, CL_DEVICE_TYPE_GPU);
+            cl_device_id device = devices[deviceIndex];
+            System.out.println("Selected device: " + JOCLUtil.getString(device, CL_DEVICE_NAME));
 
-            // Initialize the context properties
-            cl_context_properties contextProperties = new cl_context_properties();
-            contextProperties.addProperty(CL_CONTEXT_PLATFORM, platform);
+            // Initialise context of operation
+            cl_context_properties contextProps = new cl_context_properties();
+            contextProps.addProperty(CL_CONTEXT_PLATFORM, platform);
+            cl_context context = clCreateContext(contextProps, 1, new cl_device_id[]{ device }, null, null, null);
 
-            // Create a context for the selected device with contextProperties
-            cl_context context = clCreateContext(contextProperties, 1, new cl_device_id[] { device }, null, null, null);
-
+            // Open a command queue for sequential execution
             @SuppressWarnings("deprecation")
-            cl_command_queue commandQueue = clCreateCommandQueue(context, device, 0, null); // OpenCL 1.2
+            cl_command_queue commandQ = clCreateCommandQueue(context, device, 0, null);
 
-            // ********************************************************************************************************
-            // *********************************    IMPLEMENT OPENCL EXECUTION  ***************************************
-            // ********************************************************************************************************
+            // Create buffers to pass in data.
+            // Data needed: (1) original image pixels (2) an array to output.
+            cl_mem inputBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, (long) Sizeof.cl_int * wiSize, pInput, null);
+            cl_mem outputBuffer = clCreateBuffer(context, CL_MEM_READ_WRITE, (long) Sizeof.cl_int * wiSize, null, null);
 
-            // Create a read-write memory on OpenCL device (default value).
-            // Change to image size ?
-            cl_mem memOut = clCreateBuffer(context, CL_MEM_READ_WRITE, Sizeof.cl_int * wiSize, null, null);
-
-            // Load the source code 'srcCode' to the program object
-            cl_program program = clCreateProgramWithSource(context, 1, new String[] { srcCode }, null, null);
-
-            // Build the program
+            // Create and build the program
+            cl_program program = clCreateProgramWithSource(context, 1, new String[] { srcCode },  null, null);
             clBuildProgram(program, 0, null, null, null, null);
 
-            // Create the kernel for the different methods
+            // Create the kernel environment and add in the arguments for gaussian blur
             cl_kernel gaussianKernel = clCreateKernel(program, "gaussianBlur", null);
-//            cl_kernel sobelEdgeDetectKernel = clCreateKernel(program, "sorbelEdgeDetect", null);
-//            cl_kernel reduceColoursKernel = clCreateKernel(program, "gaussianBlur", null);
-//            cl_kernel mergeMaskKernel = clCreateKernel(program, "mergeMask", null);
+            clSetKernelArg(gaussianKernel, 0, Sizeof.cl_mem, Pointer.to(inputBuffer));
+            clSetKernelArg(gaussianKernel, 1, Sizeof.cl_mem, Pointer.to(outputBuffer));
+            clSetKernelArg(gaussianKernel, 2,Sizeof.cl_int, pWidth);
+            clSetKernelArg(gaussianKernel, 3,Sizeof.cl_int, pHeight);
 
-            // Setting kernel arguments to store the output
-            clSetKernelArg(gaussianKernel, 2, Sizeof.cl_mem, Pointer.to(memOut));// Array 'output'
-
-            // Set the work-item dimensions
-            long global_work_size[] = new long[] { wiSize }; // Global work size is the number of work-items
-            long local_work_size[] = new long[] { wgSize };
+            // Setting up work item dimensions
+            long[] global_work_size = new long[]{ wiSize };
+            long[] local_work_size = new long[]{ wgSize };
 
             // Execute the kernel
-            System.out.println("Starting with " + wiSize);
+            System.out.println("Attempting to execute gaussianKernel");
             System.out.flush();
 
             // Start to measure the time
             final long time0 = System.nanoTime();
 
-            // Start to execute the kernel with global and local workgroup size
-            clEnqueueNDRangeKernel(commandQueue, gaussianKernel, 1, null, global_work_size, local_work_size, 0, null, null);
-            
+            clEnqueueNDRangeKernel(commandQ, gaussianKernel, 1, null, global_work_size, local_work_size, 0, null, null);
+
+            // Read the output buffer and store it in the array that pOutput points to.
+            clEnqueueReadBuffer(commandQ, outputBuffer, CL_TRUE, 0, (long) wiSize * Sizeof.cl_int, pOutput, 0, null, null);
+
+            // Release memory objects
+            clReleaseMemObject(inputBuffer);
+            clReleaseMemObject(outputBuffer);
+            clReleaseKernel(gaussianKernel);
+            clReleaseProgram(program);
+            clReleaseCommandQueue(commandQ);
+            clReleaseContext(context);
+
+            final long time1 = System.nanoTime();
+            System.out.println("Done in " + (time1 - time0) / 1000 + " microseconds");// Get the elapsed time.
 
         } catch (Exception ex) {
             System.err.print("Error occurred! " + ex.toString());
