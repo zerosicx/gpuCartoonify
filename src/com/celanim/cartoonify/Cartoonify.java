@@ -764,6 +764,8 @@ public class Cartoonify {
             clReleaseCommandQueue(commandQ);
             clReleaseContext(context);
 
+            pushImage(output);
+
             final long time1 = System.nanoTime();
             System.out.println("Done in " + (time1 - time0) / 1000 + " microseconds");// Get the elapsed time.
 
@@ -781,12 +783,12 @@ public class Cartoonify {
         // no need to change the implementation of this method
         // This sequence of processing commands is done to every photo.
         gaussianBlur();
-        sobelEdgeDetect();
-        int edgeMask = numImages() - 1;
-        // now convert the original image into a few discrete colours
-        cloneImage(0);
-        reduceColours();
-        mergeMask(edgeMask, white, -1);
+//        sobelEdgeDetect();
+//        int edgeMask = numImages() - 1;
+//        // now convert the original image into a few discrete colours
+//        cloneImage(0);
+//        reduceColours();
+//        mergeMask(edgeMask, white, -1);
     }
 
 
