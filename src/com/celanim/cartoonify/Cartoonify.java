@@ -793,11 +793,11 @@ public class Cartoonify {
         // This sequence of processing commands is done to every photo.
         // gaussianBlur();
     //    sobelEdgeDetect();
-//        int edgeMask = numImages() - 1;
+       int edgeMask = numImages() - 1;
 //        // now convert the original image into a few discrete colours
 //        cloneImage(0);
-       reduceColours();
-//        mergeMask(edgeMask, white, -1);
+    //    reduceColours();
+       mergeMask(edgeMask, white, -1);
     }
 
 

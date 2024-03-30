@@ -156,7 +156,7 @@ __kernel void reduceColours(__global int *oldPixels, __global int *newPixels,
   int index = get_global_id(0);
   int x = index % width; // Gives column
   int y = index / width; // Gives row
-  
+
   int rgb = oldPixels[y * width + x];
   int newRed = quantizeColour(red(rgb), numColours);
   int newGreen = quantizeColour(green(rgb), numColours);
@@ -167,4 +167,15 @@ __kernel void reduceColours(__global int *oldPixels, __global int *newPixels,
 
 __kernel void mergeMask(__global int *maskPixels, __global int *photoPixels,
                         __global int *newPixels, const int maskColour,
-                        const int width) {}
+                        const int width) {
+  int index = get_global_id(0);
+  int x = index % width; // Gives column
+  int y = index / width; // Gives row
+  
+  if (maskPixels[index] == maskColour) {
+    newPixels[index] = photoPixels[index];
+  } else {
+    newPixels[index] = maskPixels[index];
+  }
+
+}
