@@ -77,6 +77,27 @@ int convolution(__global int *pixels, int xCentre, int yCentre, int *filter,
   return sum;
 }
 
+int red(int pixel) { return colourValue(pixel, RED); }
+
+int green(int pixel) { return colourValue(pixel, GREEN); }
+
+int blue(int pixel) { return colourValue(pixel, BLUE); }
+
+int quantizeColour(int colourValue, int numPerChannel) {
+  float colour = colourValue / (COLOUR_MASK + 1.0f) * numPerChannel;
+  // IMPORTANT NOTE: due to the different implemention of the "round" funciton
+  // in OpenCL, you need to use 0.49999f instead of 0.5f in your kernel code
+  int discrete = round(colour - 0.5f);
+  if (0 <= discrete && discrete < COLOUR_MASK) {
+    int newColour = discrete * COLOUR_MASK / (numPerChannel - 1);
+    if (0 <= newColour && newColour <= COLOUR_MASK) {
+      return newColour;
+    }
+  }
+}
+
+// ************************** KERNELS **************************
+
 __kernel void gaussianBlur(__global int *pixels, __global int *newPixels,
                            const int width, const int height) {
   int index = get_global_id(0);
@@ -131,7 +152,18 @@ __kernel void sobelEdgeDetect(__global int *pixels, __global int *newPixels,
 
 __kernel void reduceColours(__global int *oldPixels, __global int *newPixels,
                             const int width, const int height,
-                            const int numColours) {}
+                            const int numColours) {
+  int index = get_global_id(0);
+  int x = index % width; // Gives column
+  int y = index / width; // Gives row
+  
+  int rgb = oldPixels[y * width + x];
+  int newRed = quantizeColour(red(rgb), numColours);
+  int newGreen = quantizeColour(green(rgb), numColours);
+  int newBlue = quantizeColour(blue(rgb), numColours);
+  int newRGB = createPixel(newRed, newGreen, newBlue);
+  newPixels[y * width + x] = newRGB;
+}
 
 __kernel void mergeMask(__global int *maskPixels, __global int *photoPixels,
                         __global int *newPixels, const int maskColour,

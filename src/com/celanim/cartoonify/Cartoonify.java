@@ -734,12 +734,19 @@ public class Cartoonify {
             clBuildProgram(program, 0, null, null, null, null);
 
             // Create the kernel environment and add in the arguments for gaussian blur
-            cl_kernel gaussianKernel = clCreateKernel(program, "sobelEdgeDetect", null);
+            cl_kernel gaussianKernel = clCreateKernel(program, "reduceColours", null);
             clSetKernelArg(gaussianKernel, 0, Sizeof.cl_mem, Pointer.to(inputBuffer));
             clSetKernelArg(gaussianKernel, 1, Sizeof.cl_mem, Pointer.to(outputBuffer));
             clSetKernelArg(gaussianKernel, 2,Sizeof.cl_int, pWidth);
             clSetKernelArg(gaussianKernel, 3,Sizeof.cl_int, pHeight);
-            clSetKernelArg(gaussianKernel, 4,Sizeof.cl_int, Pointer.to(new int[]{edgeThreshold}));
+
+            // Extra parameter for sobelEdgeDetect kernel
+            // clSetKernelArg(gaussianKernel, 4,Sizeof.cl_int, Pointer.to(new int[]{edgeThreshold}));
+
+            // Extra parameter for reduceColours kernel
+            clSetKernelArg(gaussianKernel, 4,Sizeof.cl_int, Pointer.to(new int[]{numColours}));
+
+
 
 
             // Setting up work item dimensions
@@ -785,11 +792,11 @@ public class Cartoonify {
         // no need to change the implementation of this method
         // This sequence of processing commands is done to every photo.
         // gaussianBlur();
-       sobelEdgeDetect();
+    //    sobelEdgeDetect();
 //        int edgeMask = numImages() - 1;
 //        // now convert the original image into a few discrete colours
 //        cloneImage(0);
-//        reduceColours();
+       reduceColours();
 //        mergeMask(edgeMask, white, -1);
     }
 
