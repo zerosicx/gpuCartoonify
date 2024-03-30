@@ -1,6 +1,6 @@
 //************** UTILITY AND HELPERS ****************
 
- int GAUSSIAN_FILTER[] = {
+int GAUSSIAN_FILTER[] = {
     2, 4,  5,  4,  2, // sum=17
     4, 9,  12, 9,  4, // sum=38
     5, 12, 15, 12, 5, // sum=49
@@ -8,23 +8,27 @@
     2, 4,  5,  4,  2  // sum=17
 };
 
- double GAUSSIAN_SUM = 159.0;
- int GAUSSIAN_SIZE = 5;
- int COLOUR_BITS = 8;
- int COLOUR_MASK = 255;
- int RED = 2;
- int GREEN = 1;
- int BLUE = 0;
+int SOBEL_VERTICAL_FILTER[] = {-1, 0, +1, -2, 0, +2, -1, 0, +1};
+int SOBEL_HORIZONTAL_FILTER[] = {+1, +2, +1, 0, 0, 0, -1, -2, -1};
+int SOBEL_SIZE = 3;
+
+double GAUSSIAN_SUM = 159.0;
+int GAUSSIAN_SIZE = 5;
+int COLOUR_BITS = 8;
+int COLOUR_MASK = 255;
+int RED = 2;
+int GREEN = 1;
+int BLUE = 0;
 
 // Minimum of 0 and maximum if 255
 int clamp(double value) {
-  int result = (int) (value + 0.5); // round to nearest integer
+  int result = (int)(value + 0.5); // round to nearest integer
   if (result <= 0) {
-      return 0;
+    return 0;
   } else if (result > COLOUR_MASK) {
-      return 255;
+    return 255;
   } else {
-      return result;
+    return result;
   }
 }
 
@@ -54,9 +58,8 @@ int colourValue(int pixel, int colour) {
   return (pixel >> (colour * COLOUR_BITS)) & COLOUR_MASK;
 }
 
-int convolution(__global int *pixels, int xCentre, int yCentre,
-                 int *filter, int filterSize, int colour, int height,
-                int width, int index) {
+int convolution(__global int *pixels, int xCentre, int yCentre, int *filter,
+                int filterSize, int colour, int height, int width) {
   int sum = 0;
   // find the width and height of the filter matrix, which must be square.
   int filterHalf = filterSize / 2;
@@ -81,20 +84,50 @@ __kernel void gaussianBlur(__global int *pixels, __global int *newPixels,
   int y = index / width; // Gives row
 
   int red = clamp(convolution(pixels, x, y, GAUSSIAN_FILTER, GAUSSIAN_SIZE, RED,
-                              height, width, index) /
+                              height, width) /
                   GAUSSIAN_SUM);
   int green = clamp(convolution(pixels, x, y, GAUSSIAN_FILTER, GAUSSIAN_SIZE,
-                                GREEN, height, width, index) /
+                                GREEN, height, width) /
                     GAUSSIAN_SUM);
   int blue = clamp(convolution(pixels, x, y, GAUSSIAN_FILTER, GAUSSIAN_SIZE,
-                               BLUE, height, width, index) /
+                               BLUE, height, width) /
                    GAUSSIAN_SUM);
   newPixels[index] = createPixel(red, green, blue);
 }
 
 __kernel void sobelEdgeDetect(__global int *pixels, __global int *newPixels,
                               const int width, const int height,
-                              const int edgeThreshold) {}
+                              const int edgeThreshold) {
+  int index = get_global_id(0);
+  int x = index % width; // Gives column
+  int y = index / width; // Gives row
+  int BLACK = 0;
+  int WHITE = createPixel(255, 255, 255);
+
+  int redVertical = convolution(pixels, x, y, SOBEL_VERTICAL_FILTER, SOBEL_SIZE,
+                                RED, height, width);
+  int greenVertical = convolution(pixels, x, y, SOBEL_VERTICAL_FILTER,
+                                  SOBEL_SIZE, GREEN, height, width);
+  int blueVertical = convolution(pixels, x, y, SOBEL_VERTICAL_FILTER,
+                                 SOBEL_SIZE, BLUE, height, width);
+  int redHorizontal = convolution(pixels, x, y, SOBEL_HORIZONTAL_FILTER,
+                                  SOBEL_SIZE, RED, height, width);
+  int greenHorizontal = convolution(pixels, x, y, SOBEL_HORIZONTAL_FILTER,
+                                    SOBEL_SIZE, GREEN, height, width);
+  int blueHorizontal = convolution(pixels, x, y, SOBEL_HORIZONTAL_FILTER,
+                                   SOBEL_SIZE, BLUE, height, width);
+  int verticalGradient =
+      abs(redVertical) + abs(greenVertical) + abs(blueVertical);
+  int horizontalGradient =
+      abs(redHorizontal) + abs(greenHorizontal) + abs(blueHorizontal);
+  // we could take use sqrt(vertGrad^2 + horizGrad^2), but simple addition
+  // catches most edges.
+
+  int totalGradient = verticalGradient + horizontalGradient;
+  newPixels[y * width + x] = totalGradient >= edgeThreshold
+                                 ? BLACK
+                                 : WHITE; // we colour the edges black
+}
 
 __kernel void reduceColours(__global int *oldPixels, __global int *newPixels,
                             const int width, const int height,
