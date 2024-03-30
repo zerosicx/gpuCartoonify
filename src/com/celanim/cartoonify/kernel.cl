@@ -81,13 +81,13 @@ __kernel void gaussianBlur(__global int *pixels, __global int *newPixels,
   int y = index / width; // Gives row
 
   int red = clamp(convolution(pixels, x, y, GAUSSIAN_FILTER, GAUSSIAN_SIZE, RED,
-                              width, height, index) /
+                              height, width, index) /
                   GAUSSIAN_SUM);
   int green = clamp(convolution(pixels, x, y, GAUSSIAN_FILTER, GAUSSIAN_SIZE,
-                                GREEN, width, height, index) /
+                                GREEN, height, width, index) /
                     GAUSSIAN_SUM);
   int blue = clamp(convolution(pixels, x, y, GAUSSIAN_FILTER, GAUSSIAN_SIZE,
-                               BLUE, width, height, index) /
+                               BLUE, height, width, index) /
                    GAUSSIAN_SUM);
   newPixels[index] = createPixel(red, green, blue);
 }
