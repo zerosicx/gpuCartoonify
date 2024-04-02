@@ -654,11 +654,14 @@ public class Cartoonify {
         System.out.println("Done " + name + " -> " + newName + " in " + (time1 - time0) / 1e3 + " secs.");
         savePhoto(newName);
         if (debug) {
+
             // At this stage the stack of images is (from bottom to top):
             //  original, blurred, edges, original, quantized, final
             popImage();
             savePhoto(baseName + "_colours" + extn);
-            popImage();
+            if (!useGPU){
+                popImage();
+            }
             popImage();
             savePhoto(baseName + "_edges" + extn);
             popImage();
@@ -720,6 +723,9 @@ public class Cartoonify {
             // Step 1: gaussianBlur and sobelEdgeDetect
             // ********************************************************************************************************
 
+            int[] gaussianOutput = new int[wiSize];
+            int[] sobelOutput = new int[wiSize];
+
             cl_event completeGaussianBlur = new cl_event(), completeSobelEdgeDetect = new cl_event();
 
             // Open a command queue for sequential execution
@@ -756,17 +762,22 @@ public class Cartoonify {
 
             clEnqueueNDRangeKernel(commandQ1, gaussianKernel, 1, null, global_work_size, local_work_size, 0, null, completeGaussianBlur);
             // Read the output buffer and store it in the array that pOutput points to.
+            clEnqueueReadBuffer(commandQ1, gaussianOutputBuffer, CL_TRUE, 0, (long) wiSize * Sizeof.cl_int, Pointer.to(gaussianOutput), 0, null, null);
 
             cl_event[] sobelKernelDependencies = new cl_event[1];
             sobelKernelDependencies[0] = completeGaussianBlur;
             clEnqueueNDRangeKernel(commandQ1, sobelKernel, 1, null, global_work_size, local_work_size, 1, sobelKernelDependencies, completeSobelEdgeDetect);
+            clEnqueueReadBuffer(commandQ1, sobelEdgeOutputBuffer, CL_TRUE, 0, (long) wiSize * Sizeof.cl_int, Pointer.to(sobelOutput), 0, null, null);
 
+            pushImage(gaussianOutput);
+            pushImage(sobelOutput);
             System.out.println("Completed Step (1) gaussianBlur and sobelEdgeDetection in: " + (System.nanoTime() - time0) / 1000 + " microseconds");// Get the elapsed time.
 
             // ********************************************************************************************************
             // Step 2: Colour Quantization
             // ********************************************************************************************************
 
+            int[] reduceColoursOutput = new int[wiSize];
             cl_event completeReduceColours = new cl_event();
 
             cl_mem reduceColoursOutputBuffer = clCreateBuffer(context, CL_MEM_READ_WRITE, (long) Sizeof.cl_int * wiSize, null, null);
@@ -781,6 +792,9 @@ public class Cartoonify {
 
             clEnqueueNDRangeKernel(commandQ1, reduceColoursKernel, 1, null, global_work_size, local_work_size, 0, null, completeReduceColours);
             System.out.println("Completed Step (2) colour quantization: " + (System.nanoTime() - time0) / 1000 + " microseconds");// Get the elapsed time.
+
+            clEnqueueReadBuffer(commandQ1, reduceColoursOutputBuffer, CL_TRUE, 0, (long) wiSize * Sizeof.cl_int, Pointer.to(reduceColoursOutput), 0, null, null);
+            pushImage(reduceColoursOutput);
 
             // ********************************************************************************************************
             // Step 3: Merge Masking
