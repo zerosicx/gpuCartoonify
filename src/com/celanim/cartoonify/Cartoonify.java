@@ -686,12 +686,10 @@ public class Cartoonify {
             long[] global_work_size = new long[]{ wiSize };
             long[] local_work_size = new long[]{ wgSize };
             int[] imagePixels = currentImage();
-            int[] output = new int[wiSize];
 
             Pointer pInput = Pointer.to(imagePixels);
             Pointer pWidth = Pointer.to(new int[]{ width() });
             Pointer pHeight = Pointer.to(new int[]{ height() });
-
 
             // ********************************************************************************************************
             // *********************************    SET UP OF OPENCL EXECUTION  ***************************************
@@ -722,9 +720,7 @@ public class Cartoonify {
             // Step 1: gaussianBlur and sobelEdgeDetect
             // ********************************************************************************************************
 
-            int[] gaussianOutput = new int[wiSize];
-            int[] sobelEdgeOutput = new int[wiSize];
-            cl_event completeGaussianBlur = new cl_event(), completeReadGaussianBlurOutput = new cl_event(), completeSobelEdgeDetect = new cl_event(), completeReadSobelEdgeOutput = new cl_event();
+            cl_event completeGaussianBlur = new cl_event(), completeSobelEdgeDetect = new cl_event();
 
             // Open a command queue for sequential execution
             @SuppressWarnings("deprecation")
@@ -760,13 +756,10 @@ public class Cartoonify {
 
             clEnqueueNDRangeKernel(commandQ1, gaussianKernel, 1, null, global_work_size, local_work_size, 0, null, completeGaussianBlur);
             // Read the output buffer and store it in the array that pOutput points to.
-            clEnqueueReadBuffer(commandQ1, gaussianOutputBuffer, CL_TRUE, 0, (long) wiSize * Sizeof.cl_int, Pointer.to(gaussianOutput), 0, null, completeReadGaussianBlurOutput);
 
-            cl_event[] dependencies = new cl_event[2];
-            dependencies[0] = completeGaussianBlur;
-            dependencies[1] = completeReadGaussianBlurOutput;
-            clEnqueueNDRangeKernel(commandQ1, sobelKernel, 1, null, global_work_size, local_work_size, 2, dependencies, completeSobelEdgeDetect);
-            clEnqueueReadBuffer(commandQ1, sobelEdgeOutputBuffer, CL_TRUE, 0, (long) wiSize * Sizeof.cl_int, Pointer.to(sobelEdgeOutput), 0, null, completeReadSobelEdgeOutput);
+            cl_event[] sobelKernelDependencies = new cl_event[1];
+            sobelKernelDependencies[0] = completeGaussianBlur;
+            clEnqueueNDRangeKernel(commandQ1, sobelKernel, 1, null, global_work_size, local_work_size, 1, sobelKernelDependencies, completeSobelEdgeDetect);
 
             System.out.println("Completed Step (1) gaussianBlur and sobelEdgeDetection in: " + (System.nanoTime() - time0) / 1000 + " microseconds");// Get the elapsed time.
 
@@ -774,8 +767,7 @@ public class Cartoonify {
             // Step 2: Colour Quantization
             // ********************************************************************************************************
 
-            int[] reduceColoursOutput = new int[wiSize];
-            cl_event completeReduceColours = new cl_event(), completeReadReduceColoursOutput = new cl_event();
+            cl_event completeReduceColours = new cl_event();
 
             cl_mem reduceColoursOutputBuffer = clCreateBuffer(context, CL_MEM_READ_WRITE, (long) Sizeof.cl_int * wiSize, null, null);
 
@@ -788,9 +780,6 @@ public class Cartoonify {
             clSetKernelArg(reduceColoursKernel, 4,Sizeof.cl_int, Pointer.to(new int[]{ numColours }));
 
             clEnqueueNDRangeKernel(commandQ1, reduceColoursKernel, 1, null, global_work_size, local_work_size, 0, null, completeReduceColours);
-            // Read the output buffer and store it in the array that pOutput points to.
-            clEnqueueReadBuffer(commandQ1, reduceColoursOutputBuffer, CL_TRUE, 0, (long) wiSize * Sizeof.cl_int, Pointer.to(reduceColoursOutput), 0, null, completeReadReduceColoursOutput);
-
             System.out.println("Completed Step (2) colour quantization: " + (System.nanoTime() - time0) / 1000 + " microseconds");// Get the elapsed time.
 
             // ********************************************************************************************************
@@ -813,9 +802,9 @@ public class Cartoonify {
             mergeMaskDependencies[0] = completeSobelEdgeDetect;
             mergeMaskDependencies[1] = completeReduceColours;
 
-            clEnqueueNDRangeKernel(commandQ1, mergeMaskKernel, 1, null, global_work_size, local_work_size, 2, mergeMaskDependencies, completeReduceColours);
+            clEnqueueNDRangeKernel(commandQ1, mergeMaskKernel, 1, null, global_work_size, local_work_size, 2, mergeMaskDependencies, null);
             // Read the output buffer and store it in the array that pOutput points to.
-            clEnqueueReadBuffer(commandQ1, mergeMaskOutputBuffer, CL_TRUE, 0, (long) wiSize * Sizeof.cl_int, Pointer.to(mergeMaskOutput), 0, null, completeReadReduceColoursOutput);
+            clEnqueueReadBuffer(commandQ1, mergeMaskOutputBuffer, CL_TRUE, 0, (long) wiSize * Sizeof.cl_int, Pointer.to(mergeMaskOutput), 0, null, null);
 
             System.out.println("Completed Step (3) merge mask completed in: " + (System.nanoTime() - time0) / 1000 + " microseconds");// Get the elapsed time.
 
@@ -847,8 +836,6 @@ public class Cartoonify {
         } catch (Exception ex) {
             System.err.print("Error occurred! " + ex.toString());
         }
-
-
     }
 
     /**
