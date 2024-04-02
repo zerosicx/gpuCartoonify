@@ -1,0 +1,4 @@
+cartoon: cf2be2945692744b323b7b47724b43aa
+blurred: f409aca991ec772a735aefd65f37e1a5
+edges:adf55df7839c4fccc30090d6278da1c7
+colours: 547db739f6b3edeac763b5f545f6eef1
