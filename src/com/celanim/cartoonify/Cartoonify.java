@@ -755,10 +755,6 @@ public class Cartoonify {
             clSetKernelArg(sobelKernel, 3,Sizeof.cl_int, pHeight);
             clSetKernelArg(sobelKernel, 4,Sizeof.cl_int, Pointer.to(new int[]{ edgeThreshold }));
 
-            // Execute the kernel
-            System.out.println("Attempting to execute gaussianKernel");
-            System.out.flush();
-
             // Start to measure the time
             final long time0 = System.nanoTime();
 
@@ -771,6 +767,8 @@ public class Cartoonify {
             dependencies[1] = completeReadGaussianBlurOutput;
             clEnqueueNDRangeKernel(commandQ1, sobelKernel, 1, null, global_work_size, local_work_size, 2, dependencies, completeSobelEdgeDetect);
             clEnqueueReadBuffer(commandQ1, sobelEdgeOutputBuffer, CL_TRUE, 0, (long) wiSize * Sizeof.cl_int, Pointer.to(sobelEdgeOutput), 0, null, completeReadSobelEdgeOutput);
+
+            System.out.println("Completed Step (1) gaussianBlur and sobelEdgeDetection in: " + (System.nanoTime() - time0) / 1000 + " microseconds");// Get the elapsed time.
 
             // ********************************************************************************************************
             // Step 2: Colour Quantization
@@ -789,15 +787,11 @@ public class Cartoonify {
             clSetKernelArg(reduceColoursKernel, 3,Sizeof.cl_int, pHeight);
             clSetKernelArg(reduceColoursKernel, 4,Sizeof.cl_int, Pointer.to(new int[]{ numColours }));
 
-            // Execute the kernel
-            System.out.println("Attempting to execute reduceColoursKernel");
-            System.out.flush();
-
             clEnqueueNDRangeKernel(commandQ1, reduceColoursKernel, 1, null, global_work_size, local_work_size, 0, null, completeReduceColours);
             // Read the output buffer and store it in the array that pOutput points to.
             clEnqueueReadBuffer(commandQ1, reduceColoursOutputBuffer, CL_TRUE, 0, (long) wiSize * Sizeof.cl_int, Pointer.to(reduceColoursOutput), 0, null, completeReadReduceColoursOutput);
 
-            pushImage(reduceColoursOutput);
+            System.out.println("Completed Step (2) colour quantization: " + (System.nanoTime() - time0) / 1000 + " microseconds");// Get the elapsed time.
 
             // ********************************************************************************************************
             // Step 3: Merge Masking
@@ -815,10 +809,6 @@ public class Cartoonify {
             clSetKernelArg(mergeMaskKernel, 3,Sizeof.cl_int, Pointer.to(new int[]{ white }));
             clSetKernelArg(mergeMaskKernel, 4,Sizeof.cl_int, pWidth);
 
-            // Execute the kernel
-            System.out.println("Attempting to execute reduceColoursKernel");
-            System.out.flush();
-
             cl_event[] mergeMaskDependencies = new cl_event[2];
             mergeMaskDependencies[0] = completeSobelEdgeDetect;
             mergeMaskDependencies[1] = completeReduceColours;
@@ -827,7 +817,7 @@ public class Cartoonify {
             // Read the output buffer and store it in the array that pOutput points to.
             clEnqueueReadBuffer(commandQ1, mergeMaskOutputBuffer, CL_TRUE, 0, (long) wiSize * Sizeof.cl_int, Pointer.to(mergeMaskOutput), 0, null, completeReadReduceColoursOutput);
 
-            pushImage(mergeMaskOutput);
+            System.out.println("Completed Step (3) merge mask completed in: " + (System.nanoTime() - time0) / 1000 + " microseconds");// Get the elapsed time.
 
             // ********************************************************************************************************
             // Step 4: Cleaning Up
@@ -840,7 +830,6 @@ public class Cartoonify {
             clReleaseMemObject(reduceColoursOutputBuffer);
             clReleaseMemObject(mergeMaskOutputBuffer);
 
-
             clReleaseKernel(gaussianKernel);
             clReleaseKernel(sobelKernel);
             clReleaseKernel(reduceColoursKernel);
@@ -850,8 +839,10 @@ public class Cartoonify {
             clReleaseCommandQueue(commandQ1);
             clReleaseContext(context);
 
+            pushImage(mergeMaskOutput);
+
             final long time1 = System.nanoTime();
-            System.out.println("Done in " + (time1 - time0) / 1000 + " microseconds");// Get the elapsed time.
+            System.out.println("Completed all image processing in " + (time1 - time0) / 1000 + " microseconds");// Get the elapsed time.
 
         } catch (Exception ex) {
             System.err.print("Error occurred! " + ex.toString());
