@@ -87,8 +87,8 @@ int quantizeColour(int colourValue, int numPerChannel) {
   float colour = colourValue / (COLOUR_MASK + 1.0f) * numPerChannel;
   // IMPORTANT NOTE: due to the different implemention of the "round" funciton
   // in OpenCL, you need to use 0.49999f instead of 0.5f in your kernel code
-  int discrete = round(colour - 0.5f);
-  if (0 <= discrete && discrete < COLOUR_MASK) {
+  int discrete = round(colour - 0.49999f);
+  if (0 <= discrete && discrete < numPerChannel) {
     int newColour = discrete * COLOUR_MASK / (numPerChannel - 1);
     if (0 <= newColour && newColour <= COLOUR_MASK) {
       return newColour;
@@ -157,12 +157,12 @@ __kernel void reduceColours(__global int *oldPixels, __global int *newPixels,
   int x = index % width; // Gives column
   int y = index / width; // Gives row
 
-  int rgb = oldPixels[y * width + x];
+  int rgb = oldPixels[index];
   int newRed = quantizeColour(red(rgb), numColours);
   int newGreen = quantizeColour(green(rgb), numColours);
   int newBlue = quantizeColour(blue(rgb), numColours);
   int newRGB = createPixel(newRed, newGreen, newBlue);
-  newPixels[y * width + x] = newRGB;
+  newPixels[index] = newRGB;
 }
 
 __kernel void mergeMask(__global int *maskPixels, __global int *photoPixels,
