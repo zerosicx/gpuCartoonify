@@ -683,16 +683,14 @@ public class Cartoonify {
             // Use measurements from the last assignment for the peak work item sze and work group size
             final int wiSize = currentImage().length; // Processing one pixel at a time
             final int wgSize = 64; // Processing 64 Work Items per work group
+            long[] global_work_size = new long[]{ wiSize };
+            long[] local_work_size = new long[]{ wgSize };
             int[] imagePixels = currentImage();
             int[] output = new int[wiSize];
 
-            int width = width();
-            int height = height();
-
             Pointer pInput = Pointer.to(imagePixels);
-            Pointer pOutput = Pointer.to(output);
-            Pointer pWidth = Pointer.to(new int[]{width});
-            Pointer pHeight = Pointer.to(new int[]{height});
+            Pointer pWidth = Pointer.to(new int[]{ width() });
+            Pointer pHeight = Pointer.to(new int[]{ height() });
 
 
             // ********************************************************************************************************
@@ -700,8 +698,8 @@ public class Cartoonify {
             // ********************************************************************************************************
 
             // Enable extensions
-            CL.setExceptionsEnabled(true);
-            // Initialise variables for set up: paltform, device types and index
+            setExceptionsEnabled(true);
+            // Initialise variables for set up: platform, device types and index
             final int platformIndex = 0;
             final int deviceIndex = 0;
 
@@ -720,38 +718,42 @@ public class Cartoonify {
             contextProps.addProperty(CL_CONTEXT_PLATFORM, platform);
             cl_context context = clCreateContext(contextProps, 1, new cl_device_id[]{ device }, null, null, null);
 
+            // ********************************************************************************************************
+            // Step 1: gaussianBlur and sobelEdgeDetect
+            // ********************************************************************************************************
+
+            int[] gaussianOutput = new int[wiSize];
+            int[] sobelEdgeOutput = new int[wiSize];
+            cl_event completeGaussianBlur = new cl_event(), completeReadGaussianBlurOutput = new cl_event(), completeSobelEdgeDetect = new cl_event(), completeReadSobelEdgeOutput = new cl_event();
+
             // Open a command queue for sequential execution
             @SuppressWarnings("deprecation")
-            cl_command_queue commandQ = clCreateCommandQueue(context, device, 0, null);
+            cl_command_queue commandQ1 = clCreateCommandQueue(context, device, 0, null);
 
             // Create buffers to pass in data.
             // Data needed: (1) original image pixels (2) an array to output.
-            cl_mem inputBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, (long) Sizeof.cl_int * wiSize, pInput, null);
-            cl_mem outputBuffer = clCreateBuffer(context, CL_MEM_READ_WRITE, (long) Sizeof.cl_int * wiSize, null, null);
+            cl_mem originalImageBuffer = clCreateBuffer(context, CL_MEM_READ_ONLY | CL_MEM_COPY_HOST_PTR, (long) Sizeof.cl_int * wiSize, pInput, null);
+            cl_mem gaussianOutputBuffer = clCreateBuffer(context, CL_MEM_READ_WRITE, (long) Sizeof.cl_int * wiSize, null, null);
+            cl_mem sobelEdgeOutputBuffer = clCreateBuffer(context, CL_MEM_READ_WRITE, (long) Sizeof.cl_int * wiSize, null, null);
 
             // Create and build the program
             cl_program program = clCreateProgramWithSource(context, 1, new String[] { srcCode },  null, null);
             clBuildProgram(program, 0, null, null, null, null);
 
             // Create the kernel environment and add in the arguments for gaussian blur
-            cl_kernel gaussianKernel = clCreateKernel(program, "reduceColours", null);
-            clSetKernelArg(gaussianKernel, 0, Sizeof.cl_mem, Pointer.to(inputBuffer));
-            clSetKernelArg(gaussianKernel, 1, Sizeof.cl_mem, Pointer.to(outputBuffer));
+            cl_kernel gaussianKernel = clCreateKernel(program, "gaussianBlur", null);
+            clSetKernelArg(gaussianKernel, 0, Sizeof.cl_mem, Pointer.to(originalImageBuffer));
+            clSetKernelArg(gaussianKernel, 1, Sizeof.cl_mem, Pointer.to(gaussianOutputBuffer));
             clSetKernelArg(gaussianKernel, 2,Sizeof.cl_int, pWidth);
             clSetKernelArg(gaussianKernel, 3,Sizeof.cl_int, pHeight);
 
-            // Extra parameter for sobelEdgeDetect kernel
-            // clSetKernelArg(gaussianKernel, 4,Sizeof.cl_int, Pointer.to(new int[]{edgeThreshold}));
-
-            // Extra parameter for reduceColours kernel
-            clSetKernelArg(gaussianKernel, 4,Sizeof.cl_int, Pointer.to(new int[]{numColours}));
-
-
-
-
-            // Setting up work item dimensions
-            long[] global_work_size = new long[]{ wiSize };
-            long[] local_work_size = new long[]{ wgSize };
+            // When we execute this, make sure to set up a wait event for gaussianBlur to finish.
+            cl_kernel sobelKernel = clCreateKernel(program, "sobelEdgeDetect", null);
+            clSetKernelArg(sobelKernel, 0, Sizeof.cl_mem, Pointer.to(gaussianOutputBuffer));
+            clSetKernelArg(sobelKernel, 1, Sizeof.cl_mem, Pointer.to(sobelEdgeOutputBuffer));
+            clSetKernelArg(sobelKernel, 2,Sizeof.cl_int, pWidth);
+            clSetKernelArg(sobelKernel, 3,Sizeof.cl_int, pHeight);
+            clSetKernelArg(sobelKernel, 4,Sizeof.cl_int, Pointer.to(new int[]{ edgeThreshold }));
 
             // Execute the kernel
             System.out.println("Attempting to execute gaussianKernel");
@@ -760,20 +762,93 @@ public class Cartoonify {
             // Start to measure the time
             final long time0 = System.nanoTime();
 
-            clEnqueueNDRangeKernel(commandQ, gaussianKernel, 1, null, global_work_size, local_work_size, 0, null, null);
-
+            clEnqueueNDRangeKernel(commandQ1, gaussianKernel, 1, null, global_work_size, local_work_size, 0, null, completeGaussianBlur);
             // Read the output buffer and store it in the array that pOutput points to.
-            clEnqueueReadBuffer(commandQ, outputBuffer, CL_TRUE, 0, (long) wiSize * Sizeof.cl_int, pOutput, 0, null, null);
+            clEnqueueReadBuffer(commandQ1, gaussianOutputBuffer, CL_TRUE, 0, (long) wiSize * Sizeof.cl_int, Pointer.to(gaussianOutput), 0, null, completeReadGaussianBlurOutput);
+
+            cl_event[] dependencies = new cl_event[2];
+            dependencies[0] = completeGaussianBlur;
+            dependencies[1] = completeReadGaussianBlurOutput;
+            clEnqueueNDRangeKernel(commandQ1, sobelKernel, 1, null, global_work_size, local_work_size, 2, dependencies, completeSobelEdgeDetect);
+            clEnqueueReadBuffer(commandQ1, sobelEdgeOutputBuffer, CL_TRUE, 0, (long) wiSize * Sizeof.cl_int, Pointer.to(sobelEdgeOutput), 0, null, completeReadSobelEdgeOutput);
+
+            // ********************************************************************************************************
+            // Step 2: Colour Quantization
+            // ********************************************************************************************************
+
+            int[] reduceColoursOutput = new int[wiSize];
+            cl_event completeReduceColours = new cl_event(), completeReadReduceColoursOutput = new cl_event();
+
+            cl_mem reduceColoursOutputBuffer = clCreateBuffer(context, CL_MEM_READ_WRITE, (long) Sizeof.cl_int * wiSize, null, null);
+
+            // When we execute this, make sure to set up a wait event for gaussianBlur to finish.
+            cl_kernel reduceColoursKernel = clCreateKernel(program, "reduceColours", null);
+            clSetKernelArg(reduceColoursKernel, 0, Sizeof.cl_mem, Pointer.to(originalImageBuffer));
+            clSetKernelArg(reduceColoursKernel, 1, Sizeof.cl_mem, Pointer.to(reduceColoursOutputBuffer));
+            clSetKernelArg(reduceColoursKernel, 2,Sizeof.cl_int, pWidth);
+            clSetKernelArg(reduceColoursKernel, 3,Sizeof.cl_int, pHeight);
+            clSetKernelArg(reduceColoursKernel, 4,Sizeof.cl_int, Pointer.to(new int[]{ numColours }));
+
+            // Execute the kernel
+            System.out.println("Attempting to execute reduceColoursKernel");
+            System.out.flush();
+
+            clEnqueueNDRangeKernel(commandQ1, reduceColoursKernel, 1, null, global_work_size, local_work_size, 0, null, completeReduceColours);
+            // Read the output buffer and store it in the array that pOutput points to.
+            clEnqueueReadBuffer(commandQ1, reduceColoursOutputBuffer, CL_TRUE, 0, (long) wiSize * Sizeof.cl_int, Pointer.to(reduceColoursOutput), 0, null, completeReadReduceColoursOutput);
+
+            pushImage(reduceColoursOutput);
+
+            // ********************************************************************************************************
+            // Step 3: Merge Masking
+            // ********************************************************************************************************
+
+            int[] mergeMaskOutput = new int[wiSize];
+
+            cl_mem mergeMaskOutputBuffer = clCreateBuffer(context, CL_MEM_READ_WRITE, (long) Sizeof.cl_int * wiSize, null, null);
+
+            // When we execute this, make sure to set up a wait event for gaussianBlur to finish.
+            cl_kernel mergeMaskKernel = clCreateKernel(program, "mergeMask", null);
+            clSetKernelArg(mergeMaskKernel, 0, Sizeof.cl_mem, Pointer.to(sobelEdgeOutputBuffer));
+            clSetKernelArg(mergeMaskKernel, 1, Sizeof.cl_mem, Pointer.to(reduceColoursOutputBuffer));
+            clSetKernelArg(mergeMaskKernel, 2,Sizeof.cl_mem, Pointer.to(mergeMaskOutputBuffer));
+            clSetKernelArg(mergeMaskKernel, 3,Sizeof.cl_int, Pointer.to(new int[]{ white }));
+            clSetKernelArg(mergeMaskKernel, 4,Sizeof.cl_int, pWidth);
+
+            // Execute the kernel
+            System.out.println("Attempting to execute reduceColoursKernel");
+            System.out.flush();
+
+            cl_event[] mergeMaskDependencies = new cl_event[2];
+            mergeMaskDependencies[0] = completeSobelEdgeDetect;
+            mergeMaskDependencies[1] = completeReduceColours;
+
+            clEnqueueNDRangeKernel(commandQ1, mergeMaskKernel, 1, null, global_work_size, local_work_size, 2, mergeMaskDependencies, completeReduceColours);
+            // Read the output buffer and store it in the array that pOutput points to.
+            clEnqueueReadBuffer(commandQ1, mergeMaskOutputBuffer, CL_TRUE, 0, (long) wiSize * Sizeof.cl_int, Pointer.to(mergeMaskOutput), 0, null, completeReadReduceColoursOutput);
+
+            pushImage(mergeMaskOutput);
+
+            // ********************************************************************************************************
+            // Step 4: Cleaning Up
+            // ********************************************************************************************************
 
             // Release memory objects
-            clReleaseMemObject(inputBuffer);
-            clReleaseMemObject(outputBuffer);
-            clReleaseKernel(gaussianKernel);
-            clReleaseProgram(program);
-            clReleaseCommandQueue(commandQ);
-            clReleaseContext(context);
+            clReleaseMemObject(originalImageBuffer);
+            clReleaseMemObject(gaussianOutputBuffer);
+            clReleaseMemObject(sobelEdgeOutputBuffer);
+            clReleaseMemObject(reduceColoursOutputBuffer);
+            clReleaseMemObject(mergeMaskOutputBuffer);
 
-            pushImage(output);
+
+            clReleaseKernel(gaussianKernel);
+            clReleaseKernel(sobelKernel);
+            clReleaseKernel(reduceColoursKernel);
+            clReleaseKernel(mergeMaskKernel);
+
+            clReleaseProgram(program);
+            clReleaseCommandQueue(commandQ1);
+            clReleaseContext(context);
 
             final long time1 = System.nanoTime();
             System.out.println("Done in " + (time1 - time0) / 1000 + " microseconds");// Get the elapsed time.
@@ -791,13 +866,13 @@ public class Cartoonify {
     protected void processPhotoOnCPU() {
         // no need to change the implementation of this method
         // This sequence of processing commands is done to every photo.
-        // gaussianBlur();
-    //    sobelEdgeDetect();
-       int edgeMask = numImages() - 1;
-//        // now convert the original image into a few discrete colours
-//        cloneImage(0);
-    //    reduceColours();
-       mergeMask(edgeMask, white, -1);
+        gaussianBlur();
+        sobelEdgeDetect();
+        int edgeMask = numImages() - 1;
+        // now convert the original image into a few discrete colours
+        cloneImage(0);
+        reduceColours();
+        mergeMask(edgeMask, white, -1);
     }
 
 
